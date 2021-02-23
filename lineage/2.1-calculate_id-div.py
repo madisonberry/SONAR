@@ -77,7 +77,8 @@ def scoreSeqs( refSeq, querySeq, tempFile):
 	with open("%s.fa"%tempFile, "w") as handle:
 		handle.write(">%s\n%s\n>%s\n%s\n" % ( refSeq.id, refSeq.seq, querySeq.id, querySeq.seq ))
 
-	align_cline = MuscleCommandline(cmd=muscle, input="%s.fa"%tempFile, out="%s.aln"%tempFile)
+	align_cline = MuscleCommandline(cmd=muscle, input="%s.fa"%tempFile, out="%s.aln"%tempFile,
+									diags=True, maxiters=2, gapopen=-1000.0)
 	if arguments['--align'] == "clustalo":
 		align_cline = ClustalOmegaCommandline(cmd=clustalo, infile="%s.fa"%tempFile, outfile="%s.aln"%tempFile, force=True)
 	try:
@@ -243,11 +244,11 @@ def main():
 	nats = sorted( mature.keys() )
 	
 	covFile	 = open("%s_coverage.tab"%outFile, "w")
-	coverage = csv.writer( covFile, delimiter="\t" )
+	coverage = csv.writer( covFile, delimiter="\t", dialect='unix', quoting=csv.QUOTE_NONE )
 	coverage.writerow( ['sequence_id', 'germ_cov'] + nats )
 	
 	idFile	 = open("%s_id-div.tab"%outFile, "w")
-	iddiv	 = csv.writer( idFile, delimiter="\t" )
+	iddiv	 = csv.writer( idFile, delimiter="\t", dialect='unix', quoting=csv.QUOTE_NONE )
 	iddiv.writerow( ['sequence_id', 'v_gene', 'germ_div'] + nats )
 
 	#sort the freaking list and output

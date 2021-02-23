@@ -6,8 +6,11 @@ Core functions for SONAR
 
 Created by Zhenhai Zhang on 2011-04-05 as mytools.py
 Edited and commented for publication by Chaim A Schramm on 2015-02-10.
+Added column comparisons and accept a RearrangementReader object for
+     filterAirrTsv by CA Schramm on 2020-06-11.
+Changed filterAirrTsv to use eval by CA Schramm on 2020-07-02.
 
-Copyright (c) 2011-2018 Columbia University and Vaccine Research Center, National
+Copyright (c) 2011-2020 Columbia University and Vaccine Research Center, National
                          Institutes of Health, USA. All rights reserved.
 """
 
@@ -415,7 +418,10 @@ def scoreAlign( alignDict, reference="ref", query="test", countTerminalGaps=Fals
 
 		coverage = covNum  / refLen
 
-	return matches/alignLen, coverage
+	if alignLen == 0:
+	    return 0, 0
+	else:
+	    return matches/alignLen, coverage
 
 #
 # -- END -- alignment functions
@@ -426,20 +432,22 @@ def scoreAlign( alignDict, reference="ref", query="test", countTerminalGaps=Fals
 # -- BEGIN -- AIRR manipulation functions
 #
 
-def filterAirrTsv(rearrangementsFile, annotationList, exact=False):
+def filterAirrTsv(rearrangementsFile, ruleList, useOR=False):
 	good = 0
 
-	for r in airr.read_rearrangement( rearrangementsFile ):
-		keep = True
-		for filter in annotationList:
-			if len(filter['list']) > 1 or exact:
-				#want exact matches (will break if trying to match exactly on a single value - use regex '^foo$')
-				if str(r[filter['column']]) not in filter['list']:
-					keep = False
-					break
-			elif not re.search( filter['list'][0], r[filter['column']] ):
-				keep = False
-				break
+	try:
+		#see if it's a file name
+		reader = airr.read_rearrangement( rearrangementsFile )
+	except TypeError:
+		#assume it's an already open RearrangementReader object instead
+		reader = rearrangementsFile
+
+	for r in reader:
+		keep = False
+		if useOR:
+			keep = any( [eval(rule, {'re':re}, {'r':r}) for rule in ruleList] )
+		else:
+			keep = all( [eval(rule, {'re':re}, {'r':r}) for rule in ruleList] )
 
 		if keep:
 			good += 1

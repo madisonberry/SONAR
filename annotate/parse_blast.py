@@ -18,6 +18,7 @@ Split out from original 1.3-finalize_assignments.py by Chaim A Schramm on 2019-0
 Added `sequence_alignment` field for noJ reads as v gene region found by BLAST by CAS 2019-05-08.
 Added `locus`, `rev-comp`, and `productive` fields for noJ reads by CA Schramm 2019-05-23.
 Added locus consistency checks by CAS 2020-01-02.
+Added `complete_vdj` flag by CAS 2020-07-16.
 
 Copyright (c) 2019-2020 Vaccine Research Center, National Institutes of Health, USA.
 All rights reserved.
@@ -116,7 +117,7 @@ def main():
 	raw_count, total, found, noV, noJ, f_ind = 0, 0, 0, 0, 0, 1
 	counts = Counter()
 
-	writer = csv.writer(open("%s/jtophit_%s.txt" %(prj_tree.jgene, arguments['--chunk']), "w"), delimiter = sep)
+	writer = csv.writer(open("%s/jtophit_%s.txt" %(prj_tree.jgene, arguments['--chunk']), "w"), delimiter = sep, dialect='unix', quoting=csv.QUOTE_NONE)
 	writer.writerow(PARSED_BLAST_HEADER)
 	dict_jcounts = dict()
 	dict_ccounts = dict()
@@ -125,17 +126,17 @@ def main():
 	c = False
 	if os.path.isfile("%s/%s_C_%s.txt" % (prj_tree.jgene, prj_name, arguments['--chunk'])):
 		c = True
-		cWriter = csv.writer(open("%s/ctophit_%s.txt" %(prj_tree.jgene, arguments['--chunk']), "w"), delimiter = sep)
+		cWriter = csv.writer(open("%s/ctophit_%s.txt" %(prj_tree.jgene, arguments['--chunk']), "w"), delimiter = sep, dialect='unix', quoting=csv.QUOTE_NONE)
 		cWriter.writerow(PARSED_BLAST_HEADER)
 
 	d = False
 	if os.path.isfile("%s/%s_D_%s.txt" % (prj_tree.jgene, prj_name, arguments['--chunk'])):
 		d = True
-		dWriter = csv.writer(open("%s/dtophit_%s.txt" %(prj_tree.jgene, arguments['--chunk']), "w"), delimiter = sep)
+		dWriter = csv.writer(open("%s/dtophit_%s.txt" %(prj_tree.jgene, arguments['--chunk']), "w"), delimiter = sep, dialect='unix', quoting=csv.QUOTE_NONE)
 		dWriter.writerow(PARSED_BLAST_HEADER)
 
 
-	seq_stats = airr.create_rearrangement( "%s/rearrangements_%s.tsv"%(prj_tree.internal, arguments['--chunk']), fields=['vj_in_frame','stop_codon','locus','c_call','junction_length','source_file','source_id','duplicate_count','length_raw','length_trimmed','indels','status','blast_identity','consensus_count','cell_id'])
+	seq_stats = airr.create_rearrangement( "%s/rearrangements_%s.tsv"%(prj_tree.internal, arguments['--chunk']), fields=['complete_vdj','vj_in_frame','stop_codon','locus','c_call','junction_length','source_file','source_id','duplicate_count','length_raw','length_trimmed','indels','status','blast_identity','consensus_count','cell_id'])
 
 	dict_vgerm_aln, dict_other_vgerms, dict_vcounts = get_top_hits("%s/%s_%s.txt"%(prj_tree.vgene, prj_name, arguments['--chunk']) )
 	dict_jgerm_aln, dict_other_jgerms, dict_jcounts = get_top_hits("%s/%s_%s.txt"%(prj_tree.jgene, prj_name, arguments['--chunk']), topHitWriter=writer, dict_germ_count=dict_jcounts, strand="plus" )
@@ -166,6 +167,7 @@ def main():
 		rearrangement['source_id']   = raw_stats[2]
 		rearrangement['length_raw']  = raw_stats[3]
 		rearrangement['sequence']    = str(entry.seq)
+		rearrangement['complete_vdj']= False
 
 		if not raw_stats[4] == "NA":
 			rearrangement['duplicate_count'] = raw_stats[4]
@@ -233,6 +235,10 @@ def main():
 					vdj_len = v_len + myJ.qend + (len(dict_j[myJ.sid].seq) - myJ.send)
 			else:
 				vdj_len = v_len + myJ.qend
+
+			#check for complete VDJ
+			if min(myV.sstart, myV.send) == 1 and max(myJ.sstart, myJ.send) >= len(dict_j[myJ.sid].seq)-1: #-1 because the last nucleotide is part of the constant region
+				rearrangement['complete_vdj'] = True
 
 			const_seq = ""
 			if (myV.strand == 'plus'):
