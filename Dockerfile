@@ -120,7 +120,7 @@ RUN ln -s /sratoolkit.2.9.6-1-ubuntu64/bin/fastq-dump /usr/bin/fastq-dump
 
 #pull latest SONAR source code and set it up
 RUN apt-get install -y git libidn11
-RUN git clone https://github.com/scharch/SONAR.git
+RUN git clone https://github.com/madisonberry/SONAR.git
 WORKDIR SONAR
 RUN echo | ./setup.py
 RUN cp sonar /usr/bin
