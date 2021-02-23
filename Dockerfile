@@ -38,7 +38,7 @@ RUN pip3 install docopt
 RUN pip3 install fuzzywuzzy
 
 #install libraries for bioperl
-RUN apt-get install -y \
+RUN apt-get install -f -y \
   gcc-multilib \
   perl \
   cpanminus \
@@ -85,7 +85,7 @@ RUN cpanm \
   Switch
 
 #now actually install BioPerl
-RUN cpanm -v \
+RUN cpanm -f -v \
     https://github.com/bioperl/bioperl-live/archive/release-1-7-2.tar.gz
 
 #install PyQt and ete3
